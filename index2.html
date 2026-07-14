@@ -107,7 +107,7 @@
                 </div>
 
                 <!-- 전체 지출 내역 요약 -->
-                <div class="space-y-2 bg-white/70 p-4 rounded-xl border border-slate-100 shadow-sm">
+                <div class="space-y-1 bg-white/70 p-4 rounded-xl border border-slate-100 shadow-sm">
                     <div class="flex justify-between text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">
                         <span>총 지출액 (공통 지출 + 주유비)</span>
                         <span id="resGrandTotal" class="text-amber-600 text-lg">0원</span>
@@ -117,19 +117,19 @@
                         <span id="resTotal" class="font-bold text-slate-700">0원</span>
                     </div>
                     <div class="flex justify-between text-xs">
-                        <span class="text-slate-500">공동비 가중치 합계</span>
-                        <span id="resTotalWeights" class="font-bold text-slate-900">0개 몫</span>
+                        <span class="text-slate-500">가중치 비율 합계</span>
+                        <span id="resTotalWeights" class="font-bold text-slate-900">0명 몫</span>
                     </div>
                     <div class="flex justify-between text-xs pb-1">
-                        <span class="text-slate-500">1지분당 단가 (주유비 포함, 가중치 1.0 기준)</span>
+                        <span class="text-slate-500">1지분당 단가 (가중치 1.0 기준)</span>
                         <span id="resUnitAmount" class="font-bold text-slate-900">0원</span>
                     </div>
                 </div>
 
                 <!-- 개별 정산 상세 리스트 -->
                 <div>
-                    <h4 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">멤버별 개별 정산 상세 내역</h4>
-                    <div id="individualResults" class="space-y-2.5">
+                    <h4 class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">멤버별 개별 정산 상세 내역</h4>
+                    <div id="individualResults" class="space-y-1">
                         <!-- 계산 결과가 여기에 추가됩니다 -->
                     </div>
                 </div>
@@ -213,7 +213,7 @@
             }
         }
 
-        // 지출 금액(공통 + 주유비)에 따라 자동으로 👑 총무 표식을 갱신해 주는 UI 헬퍼
+        // 지출 금액(공통 + 주유비)에 따라 자동으로 👑 1등 표식을 갱신해 주는 UI 헬퍼
         function updateLeaderBadge() {
             const rows = document.querySelectorAll('.member-row');
             let maxAmount = -1;
@@ -322,7 +322,7 @@
             document.getElementById('resDate').innerText = mDate;
             document.getElementById('resGrandTotal').innerText = grandTotal.toLocaleString() + '원';
             document.getElementById('resTotal').innerText = totalSpentCommon.toLocaleString() + '원';
-            document.getElementById('resTotalWeights').innerText = totalWeights.toFixed(1) + '개 몫';
+            document.getElementById('resTotalWeights').innerText = totalWeights.toFixed(1) + '명 몫';
             document.getElementById('resUnitAmount').innerText = Math.round(unitValue).toLocaleString() + '원';
 
             // 5단계: 개별 부담 및 수령 상태 상세 리스트 렌더링
