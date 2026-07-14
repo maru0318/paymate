@@ -241,7 +241,7 @@
             if (rows[leaderIndex]) {
                 rows[leaderIndex].querySelector('.crown-icon').classList.remove('hidden');
                 rows[leaderIndex].querySelector('.role-badge').classList.remove('hidden');
-                rows[leaderIndex].querySelector('.role-badge').innerText = '총무';
+                rows[leaderIndex].querySelector('.role-badge').innerText = '1등';
             }
         }
 
@@ -348,7 +348,6 @@
                 }
 
                 const totalSpendTag = item.actualSpent > 0 ? ` <span class="text-[10px] text-slate-400">(지출: ${item.actualSpent.toLocaleString()}원)</span>` : '';
-                const roleBadge = item.isLeader ? ' <span class="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded font-bold">👑 총무</span>' : '';
 
                 card.innerHTML = `
                     <div class="flex items-center gap-3">
@@ -356,7 +355,6 @@
                         <div class="flex flex-col">
                             <div class="flex items-center gap-1">
                                 <span class="font-bold text-slate-800">${item.name}</span>
-                                ${roleBadge}
                                 ${totalSpendTag}
                             </div>
                             <span class="text-[10px] text-slate-400 font-medium mt-0.5">
