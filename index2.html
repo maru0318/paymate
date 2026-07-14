@@ -128,7 +128,7 @@
 
                 <!-- 개별 정산 상세 리스트 -->
                 <div>
-                    <h4 class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">멤버별 개별 정산 상세 내역</h4>
+                    <h4 class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">정산 상세 내역</h4>
                     <div id="individualResults" class="space-y-1.5">
                         <!-- 계산 결과가 여기에 추가됩니다 -->
                     </div>
@@ -172,7 +172,7 @@
                         <span class="crown-icon text-sm hidden">👑</span>
                         <input type="text" class="member-name w-1/2 bg-white px-2.5 py-1.5 text-sm rounded-lg border border-slate-200 focus:border-amber-400 outline-none transition-all font-bold" 
                                placeholder="이름" value="${name}">
-                        <span class="role-badge text-[10px] bg-slate-200/60 text-slate-500 px-1.5 py-0.5 rounded font-bold hidden">총무</span>
+                        <span class="role-badge text-[10px] bg-slate-200/60 text-slate-500 px-1.5 py-0.5 rounded font-bold hidden">1등</span>
                     </div>
                     <button type="button" onclick="removeMemberRow(this)" 
                             class="text-slate-400 hover:text-red-500 w-6 h-6 rounded-lg hover:bg-slate-100 transition-all flex items-center justify-center font-bold text-lg">
@@ -337,10 +337,10 @@
                 let amountText = '';
 
                 if (item.diff > 1) {
-                    statusBadge = `<span class="bg-sky-200 text-blue-700 px-2 py-1 rounded-md text-xs font-bold">돌려받기</span>`;
+                    statusBadge = `<span class="bg-sky-200 text-blue-700 px-2 py-1 rounded-md text-xs font-bold">입금</span>`;
                     amountText = `<span class="text-blue-700 font-bold text-base">+${Math.round(item.diff).toLocaleString()}원</span>`;
                 } else if (item.diff < -1) {
-                    statusBadge = `<span class="bg-rose-50 text-rose-500 px-2 py-1 rounded-md text-xs font-bold">보내기</span>`;
+                    statusBadge = `<span class="bg-rose-50 text-rose-500 px-2 py-1 rounded-md text-xs font-bold">출금</span>`;
                     amountText = `<span class="text-rose-500 font-bold text-base">-${Math.round(Math.abs(item.diff)).toLocaleString()}원</span>`;
                 } else {
                     statusBadge = `<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-xs font-bold">정산 완료</span>`;
@@ -382,16 +382,16 @@
         function generateShareText(name, date, grand, common, fuel, members) {
             let txt = `[📊 ${name} 정산 안내]\n`;
             txt += `📅 모임 일시: ${date}\n`;
-            txt += `💰 총합 지출액: ${grand.toLocaleString()}원 (공통비 + 주유비 통합 배분 ⚖️)\n`;
+            txt += `💰 총합 지출액: ${grand.toLocaleString()}원 (공통비 + 주유비)\n`;
             txt += `  - 공통 모임비: ${common.toLocaleString()}원\n`;
             txt += `  - 차량 주유비: ${fuel.toLocaleString()}원\n\n`;
 
             txt += `🔍 [멤버별 상세 내역]\n`;
             members.forEach(m => {
                 const resultText = m.diff > 1 
-                    ? `[돌려받기] +${Math.round(m.diff).toLocaleString()}원` 
+                    ? `[입금] +${Math.round(m.diff).toLocaleString()}원` 
                     : m.diff < -1 
-                    ? `[보내기] -${Math.round(Math.abs(m.diff)).toLocaleString()}원` 
+                    ? `[출금] -${Math.round(Math.abs(m.diff)).toLocaleString()}원` 
                     : `[정산 완료]`;
                 
                 txt += `• ${m.name} (가중치 ${m.weight}배)\n`;
