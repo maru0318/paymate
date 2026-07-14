@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모임 정산 계산기(PayMate)</title>
+    <!-- Tailwind CSS CDN 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        }
+        /* 깔끔한 터치 반응 및 스크롤바 커스텀 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex justify-center items-start py-8 px-4">
+
+    <!-- 메인 컨테이너 -->
+    <div class="w-full max-w-xl bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+        
+        <!-- 상단 헤더 배경 및 타이틀 -->
+        <div class="bg-gradient-to-r from-amber-400 to-amber-500 p-6 text-slate-900">
+            <h1 class="text-2xl font-bold text-center flex items-center justify-center gap-2">
+                <span>📊</span> 모임 정산 계산기
+            </h1>            
+        </div>
+
+        <div class="p-6 space-y-6">
+            <!-- 모임명 / 날짜 입력 상단 영역 -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label for="meetingName" class="text-xs font-bold text-slate-500 uppercase tracking-wide">모임명</label>
+                    <input type="text" id="meetingName" value="과천 저녁 모임" 
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none transition-all">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label for="meetingDate" class="text-xs font-bold text-slate-500 uppercase tracking-wide">모임 날짜</label>
+                    <input type="date" id="meetingDate" value="2026-07-04"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none transition-all">
+                </div>
+            </div>
+
+            <!-- 가중치 가이드 도움말 -->
+            <div class="bg-slate-50 border border-slate-100 rounded-xl p-3.5 text-xs text-slate-600 space-y-1">
+                <p class="font-bold text-slate-800">💡 가중치(비율) 설정 가이드</p>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1 pt-1 text-[11px]">
+                    <div>• <span class="font-semibold text-slate-900">1.0</span> : 일반 1인분 부담 (기본값)</div>
+                    <div>• <span class="font-semibold text-slate-900">0.5</span> : 술 안 마신 사람 (반값)</div>
+                    <div>• <span class="font-semibold text-slate-900">2.0</span> : 동반자 포함 2인분 부담</div>
+                    <div>• <span class="font-semibold text-slate-900">0.0</span> : 정산 제외 대상 (면제자)</div>
+                </div>
+            </div>
+
+            <!-- 멤버 리스트 테이블 영역 -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-bold text-slate-700">참석자 정보 입력</h2>
+                    <button type="button" onclick="addMemberRow()" 
+                            class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 active:scale-95">
+                        ➕ 멤버 추가
+                    </button>
+                </div>
+
+                <!-- 경고 메시지 토스트 영역 (alert 대용) -->
+                <div id="warningBanner" class="hidden mb-3 p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-medium">
+                    ⚠️ 최소 한 명의 멤버는 남겨두어야 합니다.
+                </div>
+
+                <!-- 멤버 입력 행 컨테이너 -->
+                <div id="memberList" class="space-y-3">
+                    <!-- 자바스크립트로 렌더링 -->
+                </div>
+            </div>
+
+            <!-- 계산 실행 버튼 -->
+            <button type="button" onclick="calculateWeightedDutchPay()" 
+                    class="w-full py-3.5 bg-amber-400 hover:bg-amber-500 active:scale-[0.99] text-slate-900 font-bold rounded-xl shadow-md transition-all text-base">
+                정산 결과 계산하기
+            </button>
+
+            <!-- 결과 출력 박스 (기본 숨김) -->
+            <div id="resultBox" class="hidden border border-amber-100 bg-amber-50/10 rounded-2xl p-5 space-y-5">
+                
+                <!-- 결과 헤더 및 복사 버튼 -->
+                <div class="text-center pb-4 border-b border-dashed border-slate-200 relative flex flex-col items-center justify-center gap-2">
+                    <h3 id="resTitle" class="text-lg font-bold text-slate-900">과천 저녁 모임</h3>
+                    <p id="resDate" class="text-xs text-slate-500 mt-0.5">2026-07-04</p>
+                    <button type="button" onclick="copyShareText()" 
+                            class="mt-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 active:scale-95 shadow-sm">
+                        📋 결과 텍스트 복사
+                    </button>
+                </div>
+
+                <!-- 전체 지출 내역 요약 -->
+                <div class="space-y-2 bg-white/70 p-4 rounded-xl border border-slate-100 shadow-sm">
+                    <div class="flex justify-between text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">
+                        <span>총 지출액 (공통 지출 + 주유비)</span>
+                        <span id="resGrandTotal" class="text-amber-600 text-lg">0원</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">모임 공통 지출액</span>
+                        <span id="resTotal" class="font-bold text-slate-700">0원</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">공동비 가중치 합계</span>
+                        <span id="resTotalWeights" class="font-bold text-slate-900">0개 몫</span>
+                    </div>
+                    <div class="flex justify-between text-xs pb-1">
+                        <span class="text-slate-500">1지분당 단가 (주유비 포함, 가중치 1.0 기준)</span>
+                        <span id="resUnitAmount" class="font-bold text-slate-900">0원</span>
+                    </div>
+                </div>
+
+                <!-- 개별 정산 상세 리스트 -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">멤버별 개별 정산 상세 내역</h4>
+                    <div id="individualResults" class="space-y-2.5">
+                        <!-- 계산 결과가 여기에 추가됩니다 -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 복사 완료 안내 토스트 알림창 -->
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-xl transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-2 z-50">
+        <span>✅</span> <span id="toastMsg">정산 결과 텍스트가 복사되었습니다!</span>
+    </div>
+
+    <!-- 자바스크립트 비즈니스 로직 -->
+    <script>
+        // 오늘 날짜 기본값 자동 적용 (2026년 기준 정상 처리)
+        //document.getElementById('meetingDate').value = new Date().toISOString().substring(0, 10);
+
+        // 운전자 및 탑승객 성향을 극적으로 보여주기 위한 기본 멤버 구성
+        const initialMembers = [
+            { name: '해정', amount: 292500, weight: 1.0, transport: 0 },
+            { name: '동주', amount: 0, weight: 1.0, transport: 0 },
+            { name: '태준', amount: 0,     weight: 1.0, transport: 0 },
+            { name: '영우', amount: 0, weight: 1.0, transport: 0 }
+        ];
+
+        const memberListContainer = document.getElementById('memberList');
+        const warningBanner = document.getElementById('warningBanner');
+        let copiedText = ""; // 공유 텍스트 저장용 글로벌 변수
+
+        // 신규 멤버 추가 렌더링 함수
+        function addMemberRow(name = '', amount = '', weight = 1.0, transport = '') {
+            warningBanner.classList.add('hidden'); // 경고 배너 닫기
+
+            const row = document.createElement('div');
+            row.className = 'member-row bg-slate-50/70 p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 transition-all space-y-2.5 relative';
+            row.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 flex-1">
+                        <span class="crown-icon text-sm hidden">👑</span>
+                        <input type="text" class="member-name w-1/2 bg-white px-2.5 py-1.5 text-sm rounded-lg border border-slate-200 focus:border-amber-400 outline-none transition-all font-bold" 
+                               placeholder="이름" value="${name}">
+                        <span class="role-badge text-[10px] bg-slate-200/60 text-slate-500 px-1.5 py-0.5 rounded font-bold hidden">총무</span>
+                    </div>
+                    <button type="button" onclick="removeMemberRow(this)" 
+                            class="text-slate-400 hover:text-red-500 w-6 h-6 rounded-lg hover:bg-slate-100 transition-all flex items-center justify-center font-bold text-lg">
+                        ×
+                    </button>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="text-[9px] text-slate-400 font-bold block mb-1">모임 지출(원)</label>
+                        <input type="number" class="member-amount w-full bg-white px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:border-amber-400 outline-none transition-all" 
+                               placeholder="0" value="${amount}" min="0" oninput="updateLeaderBadge()">
+                    </div>
+                    <div>
+                        <label class="text-[9px] text-slate-400 font-bold block mb-1">가중치(비율)</label>
+                        <input type="number" class="member-weight w-full text-center bg-white px-2 py-1.5 text-xs font-bold text-slate-700 rounded-lg border border-slate-200 focus:border-amber-400 outline-none" 
+                               value="${weight}" min="0" step="0.1" placeholder="1.0">
+                    </div>
+                    <div>
+                        <label class="text-[9px] text-slate-400 font-bold block mb-1">주유비 지출(원)</label>
+                        <input type="number" class="member-transport w-full bg-white px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:border-amber-400 outline-none transition-all" 
+                               placeholder="0" value="${transport}" min="0" oninput="updateLeaderBadge()">
+                    </div>
+                </div>
+            `;
+            memberListContainer.appendChild(row);
+            updateLeaderBadge();
+        }
+
+        // 특정 멤버 삭제 기능
+        function removeMemberRow(button) {
+            const rows = document.querySelectorAll('.member-row');
+            if (rows.length > 1) {
+                button.closest('.member-row').remove();
+                warningBanner.classList.add('hidden');
+                updateLeaderBadge();
+            } else {
+                warningBanner.classList.remove('hidden');
+            }
+        }
+
+        // 지출 금액(공통 + 주유비)에 따라 자동으로 👑 총무 표식을 갱신해 주는 UI 헬퍼
+        function updateLeaderBadge() {
+            const rows = document.querySelectorAll('.member-row');
+            let maxAmount = -1;
+            let leaderIndex = 0;
+
+            rows.forEach((row, index) => {
+                const amountInput = row.querySelector('.member-amount').value;
+                const amount = Number(amountInput) || 0;
+                const transportInput = row.querySelector('.member-transport').value;
+                const transport = Number(transportInput) || 0;
+                
+                // 총합 지출액 계산
+                const totalSpent = amount + transport;
+                
+                row.querySelector('.crown-icon').classList.add('hidden');
+                row.querySelector('.role-badge').classList.add('hidden');
+
+                if (totalSpent > maxAmount) {
+                    maxAmount = totalSpent;
+                    leaderIndex = index;
+                }
+            });
+
+            // 가장 총 지출액이 큰 멤버 카드를 총무(대리 결제 대상자)로 시각화
+            if (rows[leaderIndex]) {
+                rows[leaderIndex].querySelector('.crown-icon').classList.remove('hidden');
+                rows[leaderIndex].querySelector('.role-badge').classList.remove('hidden');
+                rows[leaderIndex].querySelector('.role-badge').innerText = '총무';
+            }
+        }
+
+        // 페이지 최초 진입 시 기본 멤버 로드 및 자동 계산
+        initialMembers.forEach(m => addMemberRow(m.name, m.amount, m.weight, m.transport));
+        calculateWeightedDutchPay();
+
+        // 주유비 정산 및 가중치가 반영된 정산 코어 엔진
+        function calculateWeightedDutchPay() {
+            const rows = document.querySelectorAll('.member-row');
+            const mName = document.getElementById('meetingName').value || '모임 정산';
+            const mDate = document.getElementById('meetingDate').value || '-';
+
+            let totalSpentCommon = 0;    // 1/N로 나눌 순수 모임 지출액 총합
+            let totalSpentFuel = 0;      // 전체 주유비 총합
+            let totalWeights = 0;        // 참석자들의 가중치 총합
+            const members = [];
+
+            // 1단계: 각 참석자별 데이터 가공 및 총합 수집
+            rows.forEach(row => {
+                const nameInput = row.querySelector('.member-name').value.trim();
+                const amountInput = row.querySelector('.member-amount').value;
+                const weightInput = row.querySelector('.member-weight').value;
+                const transportInput = row.querySelector('.member-transport').value;
+
+                const name = nameInput || '익명';
+                const amount = Number(amountInput) || 0;
+                const weight = Math.max(0, Number(weightInput) || 0);
+                const fuel = Math.max(0, Number(transportInput) || 0);
+
+                totalSpentCommon += amount;
+                totalSpentFuel += fuel;
+                totalWeights += weight;
+
+                members.push({ name, amount, weight, fuel });
+            });
+
+            if (members.length === 0) return;
+
+            // 2단계: 가중치 1.0 기준의 1지분당 비용 구하기 (공통비 + 주유비 통합 반영)
+            const grandTotal = totalSpentCommon + totalSpentFuel;
+            const unitValue = totalWeights > 0 ? (grandTotal / totalWeights) : 0;
+
+            // 3단계: 개별 최종 정산 및 송금 차액(diff) 산출
+            const individualBurdenList = [];
+
+            // 총무를 찾기 위한 판별 (총 실제 지출액이 가장 큰 사람)
+            let leaderIndex = 0;
+            let maxTotalSpent = -1;
+            members.forEach((m, idx) => {
+                const totalSpent = m.amount + m.fuel;
+                if (totalSpent > maxTotalSpent) {
+                    maxTotalSpent = totalSpent;
+                    leaderIndex = idx;
+                }
+            });
+
+            members.forEach((m, idx) => {
+                const totalBurden = Math.round(m.weight * unitValue); // 최종적으로 부담해야 할 정산 대상 금액 (공통비+주유비가 가중치대로 합산됨)
+                
+                const actualSpent = m.amount + m.fuel; // 본인이 지출(결제)했던 총금액 (공통 + 주유)
+                const diff = actualSpent - totalBurden; // 차액이 (+)면 돌려받고, (-)면 송금해야 함
+
+                individualBurdenList.push({
+                    name: m.name,
+                    amount: m.amount,
+                    fuel: m.fuel,
+                    weight: m.weight,
+                    totalBurden,
+                    actualSpent,
+                    diff,
+                    isLeader: idx === leaderIndex
+                });
+            });
+
+            // 4단계: UI 요약 지표 출력 및 업데이트
+            document.getElementById('resTitle').innerText = mName;
+            document.getElementById('resDate').innerText = mDate;
+            document.getElementById('resGrandTotal').innerText = grandTotal.toLocaleString() + '원';
+            document.getElementById('resTotal').innerText = totalSpentCommon.toLocaleString() + '원';
+            document.getElementById('resTotalWeights').innerText = totalWeights.toFixed(1) + '개 몫';
+            document.getElementById('resUnitAmount').innerText = Math.round(unitValue).toLocaleString() + '원';
+
+            // 5단계: 개별 부담 및 수령 상태 상세 리스트 렌더링
+            const indResultsContainer = document.getElementById('individualResults');
+            indResultsContainer.innerHTML = '';
+
+            individualBurdenList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'flex items-center justify-between p-3.5 bg-white border border-slate-100 rounded-xl shadow-sm text-sm transition-all hover:shadow';
+
+                let statusBadge = '';
+                let amountText = '';
+
+                if (item.diff > 1) {
+                    statusBadge = `<span class="bg-sky-200 text-blue-700 px-2 py-1 rounded-md text-xs font-bold">돌려받기</span>`;
+                    amountText = `<span class="text-blue-700 font-bold text-base">+${Math.round(item.diff).toLocaleString()}원</span>`;
+                } else if (item.diff < -1) {
+                    statusBadge = `<span class="bg-rose-50 text-rose-500 px-2 py-1 rounded-md text-xs font-bold">보내기</span>`;
+                    amountText = `<span class="text-rose-500 font-bold text-base">-${Math.round(Math.abs(item.diff)).toLocaleString()}원</span>`;
+                } else {
+                    statusBadge = `<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-xs font-bold">정산 완료</span>`;
+                    amountText = `<span class="text-slate-400 font-medium">차액 0원</span>`;
+                }
+
+                const totalSpendTag = item.actualSpent > 0 ? ` <span class="text-[10px] text-slate-400">(지출: ${item.actualSpent.toLocaleString()}원)</span>` : '';
+                const roleBadge = item.isLeader ? ' <span class="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded font-bold">👑 총무</span>' : '';
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${statusBadge}
+                        <div class="flex flex-col">
+                            <div class="flex items-center gap-1">
+                                <span class="font-bold text-slate-800">${item.name}</span>
+                                ${roleBadge}
+                                ${totalSpendTag}
+                            </div>
+                            <span class="text-[10px] text-slate-400 font-medium mt-0.5">
+                                가중치 ${item.weight}배 (부담액: ${item.totalBurden.toLocaleString()}원)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        ${amountText}
+                    </div>
+                `;
+                indResultsContainer.appendChild(card);
+            });
+
+            // 공유 텍스트 생성
+            generateShareText(mName, mDate, grandTotal, totalSpentCommon, totalSpentFuel, individualBurdenList);
+
+            // 결과 박스 부드럽게 렌더링
+            const resultBox = document.getElementById('resultBox');
+            resultBox.classList.remove('hidden');
+            resultBox.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 카카오톡 및 모임방 공유용 정밀 포맷 텍스트 생성기
+        function generateShareText(name, date, grand, common, fuel, members) {
+            let txt = `[📊 ${name} 정산 안내]\n`;
+            txt += `📅 모임 일시: ${date}\n`;
+            txt += `💰 총합 지출액: ${grand.toLocaleString()}원 (공통비 + 주유비 통합 배분 ⚖️)\n`;
+            txt += `  - 공통 모임비: ${common.toLocaleString()}원\n`;
+            txt += `  - 차량 주유비: ${fuel.toLocaleString()}원\n\n`;
+
+            txt += `🔍 [멤버별 상세 내역]\n`;
+            members.forEach(m => {
+                const resultText = m.diff > 1 
+                    ? `[돌려받기] +${Math.round(m.diff).toLocaleString()}원` 
+                    : m.diff < -1 
+                    ? `[보내기] -${Math.round(Math.abs(m.diff)).toLocaleString()}원` 
+                    : `[정산 완료]`;
+                
+                txt += `• ${m.name} (가중치 ${m.weight}배)\n`;
+                txt += `  - 실제 본인 지출액: ${m.actualSpent.toLocaleString()}원\n`;
+                txt += `  - 최종 본인 부담금: ${Math.round(m.totalBurden).toLocaleString()}원\n`;
+                txt += `  - 최종 정산 결과: ${resultText}\n`;
+            });
+            txt += `\n스마트 정산기를 통해 정밀하게 계산되었습니다.`;
+            copiedText = txt;
+        }
+
+        // 클립보드 복사 기능 수행
+        function copyShareText() {
+            if (!copiedText) return;
+
+            // iframe 환경에서도 확실하게 작동하는 legacy textarea 생성 복사 패턴 적용
+            const textarea = document.createElement('textarea');
+            textarea.value = copiedText;
+            textarea.style.position = 'fixed'; // 화면 밖 배치
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast("정산 결과가 클립보드에 복사되었습니다! 카톡 등에 붙여넣기 하세요.");
+                } else {
+                    showToast("복사에 실패했습니다. 수동으로 복사해주세요.");
+                }
+            } catch (err) {
+                showToast("복사 중 에러가 발생했습니다.");
+            }
+            
+            document.body.removeChild(textarea);
+        }
+
+        // 토스트 팝업 제어
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.innerText = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
