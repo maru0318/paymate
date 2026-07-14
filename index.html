@@ -249,10 +249,10 @@
 
                 if (diff > 0) {
                     statusBadge = `<span class="bg-sky-200 text-blue-700 px-2 py-1 rounded-md text-xs font-bold">돌려받기</span>`;
-                    amountText = `<span class="text-blue-700 font-bold">${diff.toLocaleString()}원</span>`;
+                    amountText = `<span class="text-blue-700 font-bold">+${diff.toLocaleString()}원</span>`;
                 } else if (diff < 0) {
                     statusBadge = `<span class="bg-rose-50 text-rose-500 px-2 py-1 rounded-md text-xs font-bold">보내기</span>`;
-                    amountText = `<span class="text-rose-500 font-bold">${Math.abs(diff).toLocaleString()}원</span>`;
+                    amountText = `<span class="text-rose-500 font-bold">-${Math.abs(diff).toLocaleString()}원</span>`;
                 } else {
                     statusBadge = `<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-xs font-bold">정산 완료</span>`;
                     amountText = `<span class="text-slate-400 font-medium">정확히 일치</span>`;
