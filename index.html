@@ -123,7 +123,7 @@
 
                 <!-- 개별 정산 상세 리스트 -->
                 <div>
-                    <h4 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">개인별 부담액 및 송/수령 정보</h4>
+                    <h4 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">개인별 부담액 및 입/출금 정보</h4>
                     <div id="individualResults" class="space-y-2.5">
                         <!-- 계산 결과가 여기에 추가됩니다 -->
                     </div>
@@ -252,7 +252,7 @@
                     statusBadge = `<span class="bg-sky-200 text-blue-700 px-2 py-1 rounded-md text-xs font-bold">입금</span>`;
                     amountText = `<span class="text-blue-700 font-bold">+${diff.toLocaleString()}원</span>`;
                 } else if (diff < 0) {
-                    statusBadge = `<span class="bg-rose-50 text-rose-500 px-2 py-1 rounded-md text-xs font-bold">송금</span>`;
+                    statusBadge = `<span class="bg-rose-50 text-rose-500 px-2 py-1 rounded-md text-xs font-bold">출금</span>`;
                     amountText = `<span class="text-rose-500 font-bold">-${Math.abs(diff).toLocaleString()}원</span>`;
                 } else {
                     statusBadge = `<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-xs font-bold">정산 완료</span>`;
