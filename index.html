@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모임 정산(더치페이) 계산기</title>
+    <style>
+        :root {
+            --primary-color: #fee500; /* 카카오 노란색 */
+            --primary-hover: #fada00;
+            --text-color: #333333;
+            --bg-color: #f6f6f6;
+            --card-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --danger-color: #ff4d4d;
+            --danger-hover: #e03e3e;
+            --success-color: #0000ff;
+            --info-color: #3498db;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 500px;
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 20px;
+            text-align: center;
+            margin-bottom: 24px;
+            font-weight: 700;
+            color: #111;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: #aaa;
+        }
+
+        .flex-inputs {
+            display: flex;
+            gap: 12px;
+        }
+
+        .flex-inputs .input-group {
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 24px 0 12px 0;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .member-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .member-name {
+            flex: 1;
+        }
+
+        .member-amount {
+            flex: 1.5;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-add {
+            background-color: #e1e1e1;
+            color: #333;
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn-add:hover {
+            background-color: #d4d4d4;
+        }
+
+        .btn-delete {
+            background-color: transparent;
+            color: var(--danger-color);
+            padding: 12px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete:hover {
+            color: var(--danger-hover);
+        }
+
+        .btn-calc {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: #333;
+            padding: 14px;
+            font-size: 16px;
+            margin-top: 16px;
+            border-radius: 8px;
+        }
+
+        .btn-calc:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .result-box {
+            margin-top: 24px;
+            background-color: #fdfdfd;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            display: none;
+        }
+
+        .result-box.active {
+            display: block;
+        }
+
+        .result-header {
+            text-align: center;
+            padding-bottom: 14px;
+            border-bottom: 1px dashed var(--border-color);
+            margin-bottom: 14px;
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .result-date {
+            font-size: 13px;
+            color: #777;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .summary-item.total {
+            font-weight: 700;
+        }
+
+        .summary-item.average {
+            font-weight: 700;
+            color: var(--info-color);
+            padding-bottom: 14px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 14px;
+        }
+
+        .individual-results {
+            margin-top: 10px;
+        }
+
+        .individual-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #fafafa;
+        }
+
+        .status-tag {
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 6px;
+        }
+
+        .status-send {
+            background-color: #ffeded;
+            color: var(--danger-color);
+        }
+
+        .status-receive {
+            background-color: #87cefa;
+            color: var(--success-color);
+        }
+
+        .status-done {
+            background-color: #f0f0f0;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📅 모임 정산(1/n) 계산기</h1>
+    
+    <div class="flex-inputs">
+        <div class="input-group">
+            <label for="meetingName">모임명</label>
+            <input type="text" id="meetingName" class="form-control" value="과천 모임">
+        </div>
+        <div class="input-group">
+            <label for="meetingDate">모임 날짜</label>
+            <input type="date" id="meetingDate" class="form-control" value="2026-07-04">
+        </div>
+    </div>
+	<div class="flex-inputs">
+        <div class="input-group">
+            <label for="bankName">은행명</label>
+            <input type="text" id="bankName" class="form-control" value="기업은행">
+        </div>
+        <div class="input-group">
+            <label for="bankNum">계좌번호</label>
+            <input type="number" id="bankNum" class="form-control" value="53200056201011">
+        </div>
+		<div class="input-group">
+            <label for="bankOwner">이름</label>
+            <input type="text" id="bankOwner" class="form-control" value="이해정">
+        </div>
+    </div>
+
+    <div class="section-title">
+        <span>참여 멤버 및 지출 금액</span>
+        <button type="button" class="btn btn-add" onclick="addMemberRow()">+ 멤버 추가</button>
+    </div>
+
+    <div id="memberList">
+        <!-- 멤버 행들이 동적으로 추가됩니다 -->
+    </div>
+
+    <button type="button" class="btn btn-calc" onclick="calculateDutchPay()">정산 결과 계산하기</button>
+
+    <div id="resultBox" class="result-box">
+        <div class="result-header">
+            <div id="resTitle" class="result-title">과천 모임</div>
+            <div id="resDate" class="result-date">2026-07-04</div>
+        </div>		
+		<div class="summary-item total">
+            <span>입금계좌</span>
+            <span id="resBankInfo"></span>
+        </div>
+        <div class="summary-item total">
+            <span>총 지출 금액</span>
+            <span id="resTotal">0원</span>
+        </div>
+        <div class="summary-item average">
+            <span>1인당 정산 금액</span>
+            <span id="resAverage">0원</span>
+        </div>
+        
+        <div class="section-title" style="margin: 10px 0; border: none; font-size: 14px; color: #666;">
+            <span>개별 정산 현황</span>
+        </div>
+        <div id="individualResults" class="individual-results">
+            <!-- 개별 결과가 여기에 표시됩니다 -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // 오늘 날짜 기본값 설정
+    //document.getElementById('meetingDate').value = new Date().toISOString().substring(0, 10);
+
+    // 초기 샘플 데이터
+    const initialMembers = [
+        { name: '해정', amount: 292500 },
+		{ name: '태준', amount: 0 },
+        { name: '동주', amount: 0 },
+        { name: '영우', amount: 0 }
+    ];
+
+    const memberListContainer = document.getElementById('memberList');
+
+    // 멤버 행 추가 함수
+    function addMemberRow(name = '', amount = '') {
+        const row = document.createElement('div');
+        row.className = 'member-row';
+        row.innerHTML = `
+            <input type="text" class="form-control member-name" placeholder="이름" value="${name}">
+            <input type="number" class="form-control member-amount" placeholder="지출 금액(원)" value="${amount}" min="0">
+            <button type="button" class="btn btn-delete" onclick="removeMemberRow(this)">×</button>
+        `;
+        memberListContainer.appendChild(row);
+    }
+
+    // 멤버 행 삭제 함수
+    function removeMemberRow(button) {
+        const rows = document.querySelectorAll('.member-row');
+        if (rows.length > 1) {
+            button.parentElement.remove();
+        } else {
+            alert('최소 한 명의 멤버는 있어야 합니다.');
+        }
+    }
+
+    // 초기 데이터 로드
+    initialMembers.forEach(m => addMemberRow(m.name, m.amount));
+
+    // 정산 계산 로직 (숫자 변환 버그 완전 해결)
+    function calculateDutchPay() {
+        const rows = document.querySelectorAll('.member-row');
+        const mName = document.getElementById('meetingName').value || '모임 정산';
+        const mDate = document.getElementById('meetingDate').value || '-';
+		
+		const bankInfo = document.getElementById('bankName').value + ' ' + document.getElementById('bankNum').value + ' ' + document.getElementById('bankOwner').value;
+
+        let totalAmount = 0;
+        const members = [];
+
+        rows.forEach(row => {
+            const nameInput = row.querySelector('.member-name').value.trim();
+            const amountInput = row.querySelector('.member-amount').value;
+            
+            const name = nameInput || '익명';
+            // 명확하게 Number()로 변환하여 문자열 결합 버그 방지
+            const amount = Number(amountInput) || 0;
+
+            totalAmount += amount;
+            members.push({ name, amount });
+        });
+
+        const memberCount = members.length;
+        if (memberCount === 0) return;
+
+        // 1인당 평균 (원 단위 반올림)
+        const averageAmount = Math.round(totalAmount / memberCount);
+
+        // 결과 업데이트
+        document.getElementById('resTitle').innerText = mName;
+        document.getElementById('resDate').innerText = mDate;
+        document.getElementById('resTotal').innerText = totalAmount.toLocaleString() + '원';
+        document.getElementById('resAverage').innerText = averageAmount.toLocaleString() + '원';
+		document.getElementById('resBankInfo').innerText = bankInfo;
+		
+
+        const indResultsContainer = document.getElementById('individualResults');
+        indResultsContainer.innerHTML = '';
+
+        members.forEach(m => {
+            const diff = m.amount - averageAmount;
+            const item = document.createElement('div');
+            item.className = 'individual-item';
+
+            let statusStr = '';
+            if (diff > 0) {
+                statusStr = `<span><span class="status-tag status-receive">받을 금액</span><strong>${m.name}</strong> (${m.amount.toLocaleString()}원 지출)</span> <span>${diff.toLocaleString()}원 수령</span>`;
+            } else if (diff < 0) {
+                statusStr = `<span><span class="status-tag status-send">보낼 금액</span><strong>${m.name}</strong> (${m.amount.toLocaleString()}원 지출)</span> <span>${Math.abs(diff).toLocaleString()}원 송금</span>`;
+            } else {
+                statusStr = `<span><span class="status-tag status-done">정산 완료</span><strong>${m.name}</strong> (${m.amount.toLocaleString()}원 지출)</span> <span>0원</span>`;
+            }
+
+            item.innerHTML = statusStr;
+            indResultsContainer.appendChild(item);
+        });
+
+        document.getElementById('resultBox').classList.add('active');
+        
+        // 결과창으로 부드럽게 스크롤
+        document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
