@@ -110,7 +110,7 @@
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-slate-500">총 참여 가중치 합계</span>
-                        <span id="resTotalWeights" class="font-bold text-slate-900">0개 몫</span>
+                        <span id="resTotalWeights" class="font-bold text-slate-900">0명 몫</span>
                     </div>
                     <div class="flex justify-between text-sm pb-2">
                         <span class="text-slate-500">1지분당 기준 금액 (가중치 1.0 기준)</span>
@@ -227,7 +227,7 @@
             document.getElementById('resTitle').innerText = mName;
             document.getElementById('resDate').innerText = mDate;
             document.getElementById('resTotal').innerText = totalSpent.toLocaleString() + '원';
-            document.getElementById('resTotalWeights').innerText = totalWeights.toFixed(1) + '개 몫';
+            document.getElementById('resTotalWeights').innerText = totalWeights.toFixed(1) + '명 몫';
             document.getElementById('resUnitAmount').innerText = Math.round(unitValue).toLocaleString() + '원';
 
             const indResultsContainer = document.getElementById('individualResults');
