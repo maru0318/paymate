@@ -187,8 +187,9 @@
             }
         }
 
-        // 페이지 최초 진입 시 기본 멤버 로드
+        // 페이지 최초 진입 시 기본 멤버 로드 및 자동계산
         initialMembers.forEach(m => addMemberRow(m.name, m.amount, m.weight));
+        calculateWeightedDutchPay();
 
         // 가중치 적용 더치페이 계산 로직
         function calculateWeightedDutchPay() {
