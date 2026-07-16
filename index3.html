@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모임 정산 영수증 계산기</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f5f6fa;
+        }
+        .kakao-yellow {
+            background-color: #fee500;
+        }
+        .kakao-yellow-hover {
+            background-color: #fada00;
+        }
+        /* 영수증 톱니바퀴 하단 효과 스타일 */
+        .receipt-bottom {
+            background-image: linear-gradient(-45deg, #ffffff 8px, transparent 0), linear-gradient(45deg, #ffffff 8px, transparent 0);
+            background-size: 16px 16px;
+            background-position: left bottom;
+        }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen py-6 px-4 flex items-center justify-center">
+
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+        <!-- 헤더 영역 -->
+        <div class="kakao-yellow px-6 py-6 text-center relative">
+            <h1 class="text-xl font-bold text-gray-900 flex items-center justify-center gap-2">
+                <i data-lucide="calculator" class="w-6 h-6"></i>
+                모임 정산 영수증 메이커
+            </h1>
+            <p class="text-xs text-gray-700 mt-1 font-medium">가중치 분할 & 주유비 통합 정산 시스템</p>
+            
+            <button onclick="clearAllData()" class="absolute right-4 top-6 text-gray-700 hover:text-red-600 transition-colors flex items-center gap-1 text-xs font-semibold">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                초기화
+            </button>
+        </div>
+
+        <!-- 본문 폼 입력 영역 -->
+        <div class="p-6 space-y-6">
+            <!-- 1. 기본 모임 정보 -->
+            <div class="space-y-3">
+                <h3 class="text-sm font-bold text-gray-500 flex items-center gap-1.5 uppercase tracking-wider">
+                    <i data-lucide="info" class="w-4 h-4"></i> 기본 모임 정보
+                </h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 font-medium">모임명</label>
+                        <input type="text" id="meetingName" oninput="saveToLocal()" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-yellow-400" placeholder="예: 강남역 저녁 모임">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 font-medium">모임 날짜</label>
+                        <input type="date" id="meetingDate" oninput="saveToLocal()" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-yellow-400">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 총무 계좌 및 송금 정보 -->
+            <div class="space-y-3 bg-yellow-50/50 p-4 rounded-2xl border border-yellow-100">
+                <h3 class="text-sm font-bold text-amber-800 flex items-center gap-1.5">
+                    <i data-lucide="wallet" class="w-4 h-4"></i> 총무 송금 계좌 정보 (선택)
+                </h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs text-amber-700 mb-1 font-medium">총무 이름</label>
+                        <input type="text" id="leaderName" oninput="saveToLocal()" class="w-full px-3 py-1.5 text-xs bg-white border border-yellow-200 rounded-lg focus:outline-none focus:border-yellow-400" placeholder="받는 사람 이름">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-amber-700 mb-1 font-medium">은행명</label>
+                        <input type="text" id="leaderBank" oninput="saveToLocal()" class="w-full px-3 py-1.5 text-xs bg-white border border-yellow-200 rounded-lg focus:outline-none focus:border-yellow-400" placeholder="예: 카카오뱅크">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 gap-2 mt-2">
+                    <div>
+                        <label class="block text-xs text-amber-700 mb-1 font-medium">계좌번호</label>
+                        <input type="text" id="leaderAccount" oninput="saveToLocal()" class="w-full px-3 py-1.5 text-xs bg-white border border-yellow-200 rounded-lg focus:outline-none focus:border-yellow-400" placeholder="- 없이 입력">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-amber-700 mb-1 font-medium">간편송금 링크 (카카오페이/토스 등)</label>
+                        <input type="url" id="leaderLink" oninput="saveToLocal()" class="w-full px-3 py-1.5 text-xs bg-white border border-yellow-200 rounded-lg focus:outline-none focus:border-yellow-400" placeholder="https://qr.kakaopay.com/...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 멤버별 입력 세션 -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-gray-500 flex items-center gap-1.5 uppercase tracking-wider">
+                        <i data-lucide="users" class="w-4 h-4"></i> 멤버별 지출 및 가중치
+                    </h3>
+                    <button onclick="addMember()" class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg flex items-center gap-1 transition-all">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> 멤버 추가
+                    </button>
+                </div>
+
+                <!-- 멤버 동적 생성 컨테이너 -->
+                <div id="memberContainer" class="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                    <!-- Javascript가 행을 렌더링합니다. -->
+                </div>
+            </div>
+
+            <!-- 계산하기 버튼 -->
+            <button onclick="performCalculation()" class="w-full py-4 kakao-yellow hover:kakao-yellow-hover text-gray-900 font-bold rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98]">
+                <i data-lucide="calculator" class="w-5 h-5"></i>
+                실시간 정산 및 영수증 발행
+            </button>
+
+            <!-- 4. 결과 창 (영수증 컨셉) -->
+            <div id="receiptBox" class="hidden border border-gray-200 rounded-2xl bg-white shadow-inner overflow-hidden">
+                <div class="p-6 bg-white relative">
+                    <!-- 영수증 장식용 상단 선 -->
+                    <div class="border-t-4 border-double border-gray-300 pt-4"></div>
+                    
+                    <div class="text-center mb-6">
+                        <span class="text-xs font-bold text-yellow-600 bg-yellow-50 px-2.5 py-1 rounded-full uppercase">RECEIPT</span>
+                        <h2 id="recName" class="text-lg font-bold text-gray-900 mt-2">강남역 저녁 모임</h2>
+                        <p id="recDate" class="text-xs text-gray-400 mt-0.5">2026-07-16</p>
+                    </div>
+
+                    <!-- 총합 요약 정보 -->
+                    <div class="space-y-2 border-b border-dashed border-gray-200 pb-4 mb-4 text-sm">
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>총 공통 지출액</span>
+                            <span id="recCommonSum" class="font-medium">0원</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>총 주유비 지출액</span>
+                            <span id="recGasSum" class="font-medium">0원</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-900 font-bold text-base pt-1">
+                            <span>총 모임 지출액 (전체)</span>
+                            <span id="recTotalSum" class="text-red-500">0원</span>
+                        </div>
+                        <div class="flex justify-between items-center text-yellow-600 font-bold pt-2 border-t border-gray-50">
+                            <span>가중치 1.0당 지분 단가</span>
+                            <span id="recSharePrice" class="text-base">0원</span>
+                        </div>
+                    </div>
+
+                    <!-- 개별 정산 명세서 -->
+                    <div class="space-y-3 mb-6">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">개별 정산 명세</h4>
+                        <div id="recIndividualList" class="space-y-2">
+                            <!-- 정산 결과 목록 동적 주입 -->
+                        </div>
+                    </div>
+
+                    <!-- 총무 계좌 및 퀵송금 링크 (있는 경우에만 표시) -->
+                    <div id="recAccountSection" class="hidden bg-gray-50 rounded-xl p-4 border border-gray-100 mb-6">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="landmark" class="w-5 h-5 text-gray-500 mt-0.5"></i>
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-400 font-medium">송금 계좌 안내</p>
+                                <p id="recAccountText" class="text-sm font-bold text-gray-800 mt-0.5">국민은행 12345-67-890 (홍길동)</p>
+                                <a id="recPayLink" href="#" target="_blank" class="hidden mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-xs font-bold rounded-lg transition-colors">
+                                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                    카카오페이 / 토스 바로 송금
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-dashed border-gray-200 my-4"></div>
+
+                    <!-- 유틸리티 버튼 세션 -->
+                    <div class="grid grid-cols-2 gap-2 pt-2">
+                        <button onclick="copyShareText()" class="py-2.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors">
+                            <i data-lucide="copy" class="w-4 h-4"></i>
+                            결과 텍스트 복사
+                        </button>
+                        <button onclick="generateReceiptImage()" class="py-2.5 px-3 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            영수증 이미지 다운로드
+                        </button>
+                    </div>
+                </div>
+                <!-- 영수증 데코용 하단 톱니바퀴 컷팅라인 -->
+                <div class="h-4 receipt-bottom bg-gray-100"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지 생성을 위한 숨겨진 캔버스 -->
+    <canvas id="receiptCanvas" style="display:none;"></canvas>
+
+    <script>
+        // 초기화 시 Lucide 아이콘 적용
+        lucide.createIcons();
+
+        // 오늘 날짜 설정용 기본 헬퍼
+        const getTodayString = () => new Date().toISOString().substring(0, 10);
+
+        // 기본 멤버 템플릿
+        const defaultMembers = [
+            { id: 1, name: '홍길동', commonAmount: 50000, weight: 1.0, gasAmount: 10000 },
+            { id: 2, name: '김철수', commonAmount: 10000, weight: 1.0, gasAmount: 0 },
+            { id: 3, name: '이영희', commonAmount: 0, weight: 0.5, gasAmount: 5000 },
+            { id: 4, name: '박민수', commonAmount: 20000, weight: 1.0, gasAmount: 0 },
+            { id: 5, name: '최수진', commonAmount: 0, weight: 1.5, gasAmount: 0 }
+        ];
+
+        // 상태값 관리 객체
+        let state = {
+            meetingName: '강남역 저녁 모임',
+            meetingDate: getTodayString(),
+            leaderName: '',
+            leaderBank: '',
+            leaderAccount: '',
+            leaderLink: '',
+            members: []
+        };
+
+        // 로컬스토리지에서 데이터를 로드하거나 기본값으로 셋팅
+        function initApp() {
+            const saved = localStorage.getItem('dutchpay_v3_state');
+            if (saved) {
+                try {
+                    state = JSON.parse(saved);
+                    // 날짜가 공백이면 오늘날짜 처리
+                    if (!state.meetingDate) state.meetingDate = getTodayString();
+                } catch (e) {
+                    loadDefaultState();
+                }
+            } else {
+                loadDefaultState();
+            }
+
+            // 폼 필드 입력값 세팅
+            document.getElementById('meetingName').value = state.meetingName;
+            document.getElementById('meetingDate').value = state.meetingDate;
+            document.getElementById('leaderName').value = state.leaderName || '';
+            document.getElementById('leaderBank').value = state.leaderBank || '';
+            document.getElementById('leaderAccount').value = state.leaderAccount || '';
+            document.getElementById('leaderLink').value = state.leaderLink || '';
+
+            renderMembers();
+        }
+
+        function loadDefaultState() {
+            state.meetingName = '강남역 저녁 모임';
+            state.meetingDate = getTodayString();
+            state.leaderName = '홍길동';
+            state.leaderBank = '카카오뱅크';
+            state.leaderAccount = '3333-01-2345678';
+            state.leaderLink = '';
+            state.members = JSON.parse(JSON.stringify(defaultMembers));
+        }
+
+        // 로컬스토리지 임시 보관
+        function saveToLocal() {
+            state.meetingName = document.getElementById('meetingName').value;
+            state.meetingDate = document.getElementById('meetingDate').value;
+            state.leaderName = document.getElementById('leaderName').value;
+            state.leaderBank = document.getElementById('leaderBank').value;
+            state.leaderAccount = document.getElementById('leaderAccount').value;
+            state.leaderLink = document.getElementById('leaderLink').value;
+
+            // 멤버 목록 수집
+            const memberCards = document.querySelectorAll('.member-card');
+            state.members = Array.from(memberCards).map(card => {
+                const id = parseInt(card.dataset.id);
+                const name = card.querySelector('.input-name').value.trim();
+                const commonAmount = Number(card.querySelector('.input-common').value) || 0;
+                const weight = parseFloat(card.querySelector('.select-weight').value) || 1.0;
+                const gasAmount = Number(card.querySelector('.input-gas').value) || 0;
+
+                return { id, name, commonAmount, weight, gasAmount };
+            });
+
+            localStorage.setItem('dutchpay_v3_state', JSON.stringify(state));
+            updateCrowns();
+        }
+
+        // 전체 데이터 초기화
+        function clearAllData() {
+            localStorage.removeItem('dutchpay_v3_state');
+            loadDefaultState();
+            
+            document.getElementById('meetingName').value = state.meetingName;
+            document.getElementById('meetingDate').value = state.meetingDate;
+            document.getElementById('leaderName').value = state.leaderName;
+            document.getElementById('leaderBank').value = state.leaderBank;
+            document.getElementById('leaderAccount').value = state.leaderAccount;
+            document.getElementById('leaderLink').value = state.leaderLink;
+
+            renderMembers();
+            document.getElementById('receiptBox').classList.add('hidden');
+        }
+
+        // 실시간 왕관(총무) 마크 변경 
+        // 💡 총무 규칙: 공통지출 + 주유비를 포함한 실질 '전체 지출' 최고 금액자
+        function updateCrowns() {
+            const memberCards = document.querySelectorAll('.member-card');
+            let maxTotalSpend = -1;
+            let leaderId = null;
+
+            memberCards.forEach(card => {
+                const id = parseInt(card.dataset.id);
+                const common = Number(card.querySelector('.input-common').value) || 0;
+                const gas = Number(card.querySelector('.input-gas').value) || 0;
+                const total = common + gas;
+
+                if (total > maxTotalSpend) {
+                    maxTotalSpend = total;
+                    leaderId = id;
+                }
+            });
+
+            memberCards.forEach(card => {
+                const id = parseInt(card.dataset.id);
+                const crown = card.querySelector('.crown-icon');
+                if (id === leaderId && maxTotalSpend > 0) {
+                    crown.classList.remove('hidden');
+                } else {
+                    crown.classList.add('hidden');
+                }
+            });
+        }
+
+        // 멤버 렌더링
+        function renderMembers() {
+            const container = document.getElementById('memberContainer');
+            container.innerHTML = '';
+
+            state.members.forEach(member => {
+                const card = document.createElement('div');
+                card.className = 'member-card p-4 border border-gray-100 rounded-2xl bg-gray-50/50 space-y-3 relative';
+                card.dataset.id = member.id;
+
+                card.innerHTML = `
+                    <!-- 카드 헤더 (이름 & 삭제) -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <span class="crown-icon text-amber-500 hidden" title="최다 지출자 (총무)">👑</span>
+                            <input type="text" value="${member.name}" oninput="saveToLocal()" class="input-name font-bold text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-yellow-400 focus:bg-white px-1 py-0.5 rounded outline-none w-24" placeholder="멤버 이름">
+                        </div>
+                        <button onclick="deleteMember(${member.id})" class="text-gray-400 hover:text-red-500 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- 금액 및 가중치 입력단 -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-gray-400 mb-0.5 font-semibold">공동 음식/회비 지출</label>
+                            <input type="number" value="${member.commonAmount}" oninput="saveToLocal()" class="input-common w-full px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-yellow-400" placeholder="원">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400 mb-0.5 font-semibold">개인 주유비 지출</label>
+                            <input type="number" value="${member.gasAmount}" oninput="saveToLocal()" class="input-gas w-full px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-yellow-400" placeholder="원">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400 mb-0.5 font-semibold">비율(가중치)</label>
+                            <select onchange="saveToLocal()" class="select-weight w-full px-1.5 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-yellow-400 bg-white">
+                                <option value="0.0" ${member.weight === 0.0 ? 'selected' : ''}>0.0 (미지불)</option>
+                                <option value="0.5" ${member.weight === 0.5 ? 'selected' : ''}>0.5 (절반)</option>
+                                <option value="1.0" ${member.weight === 1.0 ? 'selected' : ''}>1.0 (일반)</option>
+                                <option value="1.5" ${member.weight === 1.5 ? 'selected' : ''}>1.5 (1.5인분)</option>
+                                <option value="2.0" ${member.weight === 2.0 ? 'selected' : ''}>2.0 (2인분)</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            lucide.createIcons();
+            updateCrowns();
+        }
+
+        // 멤버 추가
+        function addMember() {
+            saveToLocal(); // 현재 데이터 보존
+            const nextId = state.members.length > 0 ? Math.max(...state.members.map(m => m.id)) + 1 : 1;
+            state.members.push({
+                id: nextId,
+                name: `멤버 ${nextId}`,
+                commonAmount: 0,
+                weight: 1.0,
+                gasAmount: 0
+            });
+            renderMembers();
+            saveToLocal();
+        }
+
+        // 멤버 삭제
+        function deleteMember(id) {
+            if (state.members.length <= 1) {
+                alert('최소 1명 이상의 멤버가 등록되어 있어야 합니다.');
+                return;
+            }
+            state.members = state.members.filter(m => m.id !== id);
+            renderMembers();
+            saveToLocal();
+        }
+
+        // 글로벌 변수로 최종 결과 캐싱 (영수증 및 텍스트 공유에 활용)
+        let calcResultCache = null;
+
+        // 정산 연산 핵심 로직
+        function performCalculation() {
+            saveToLocal(); // 입력 상태 최종 반영
+            
+            if (state.members.length === 0) return;
+
+            // 1. 기초 값 수집 및 가중치 합산
+            let totalCommon = 0;
+            let totalGas = 0;
+            let totalWeight = 0;
+
+            const processedMembers = state.members.map(m => {
+                totalCommon += m.commonAmount;
+                totalGas += m.gasAmount;
+                totalWeight += m.weight;
+                return {
+                    ...m,
+                    myTotalSpend: m.commonAmount + m.gasAmount // 개인이 낸 총 금액
+                };
+            });
+
+            const grandTotal = totalCommon + totalGas;
+
+            if (totalWeight === 0) {
+                alert('가중치 비율의 총합이 0일 수 없습니다.');
+                return;
+            }
+
+            // 💡 1지분당 단가 산출 (주유비 포함 총합 / 총 가중치 지분 합)
+            // 소수점 절사를 위해 원단위 반올림 처리
+            const baseSharePrice = Math.round(grandTotal / totalWeight);
+
+            // 각자 부담액 및 돌려받을/보낼 정산 잔액 계산
+            const results = processedMembers.map(m => {
+                const myDuty = Math.round(baseSharePrice * m.weight); // 내 가중치 몫
+                const balance = m.myTotalSpend - myDuty; // 낸 돈 - 부담해야 할 돈
+
+                return {
+                    name: m.name,
+                    weight: m.weight,
+                    myTotalSpend: m.myTotalSpend,
+                    myDuty: myDuty,
+                    balance: balance // 양수면 받을 금액, 음수면 보낼 금액
+                };
+            });
+
+            // 결과 캐시 업데이트
+            calcResultCache = {
+                meetingName: state.meetingName || '모임 정산',
+                meetingDate: state.meetingDate,
+                totalCommon,
+                totalGas,
+                grandTotal,
+                baseSharePrice,
+                leaderName: state.leaderName,
+                leaderBank: state.leaderBank,
+                leaderAccount: state.leaderAccount,
+                leaderLink: state.leaderLink,
+                results
+            };
+
+            // UI 바인딩
+            document.getElementById('recName').innerText = calcResultCache.meetingName;
+            document.getElementById('recDate').innerText = calcResultCache.meetingDate;
+            document.getElementById('recCommonSum').innerText = totalCommon.toLocaleString() + '원';
+            document.getElementById('recGasSum').innerText = totalGas.toLocaleString() + '원';
+            document.getElementById('recTotalSum').innerText = grandTotal.toLocaleString() + '원';
+            document.getElementById('recSharePrice').innerText = baseSharePrice.toLocaleString() + '원';
+
+            // 명세서 렌더링
+            const recIndividualList = document.getElementById('recIndividualList');
+            recIndividualList.innerHTML = '';
+
+            results.forEach(res => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center text-xs border-b border-gray-50 pb-2';
+
+                let tag = '';
+                let amountText = '';
+                if (res.balance > 0) {
+                    tag = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-600">수령</span>';
+                    amountText = `<span class="text-green-600 font-semibold">+${res.balance.toLocaleString()}원</span>`;
+                } else if (res.balance < 0) {
+                    tag = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-600">송금</span>';
+                    amountText = `<span class="text-red-600 font-semibold">${res.balance.toLocaleString()}원</span>`;
+                } else {
+                    tag = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500">완료</span>';
+                    amountText = '<span class="text-gray-400">0원</span>';
+                }
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        ${tag}
+                        <span class="font-medium text-gray-700">${res.name} <span class="text-gray-400">(${res.weight}배)</span></span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] text-gray-400">지출: ${res.myTotalSpend.toLocaleString()}원 | 부담: ${res.myDuty.toLocaleString()}원</div>
+                        <div class="text-sm">${amountText}</div>
+                    </div>
+                `;
+                recIndividualList.appendChild(item);
+            });
+
+            // 계좌 안내 연동
+            const accountSec = document.getElementById('recAccountSection');
+            if (state.leaderBank && state.leaderAccount) {
+                accountSec.classList.remove('hidden');
+                document.getElementById('recAccountText').innerText = `${state.leaderBank} ${state.leaderAccount} ${state.leaderName ? `(${state.leaderName})` : ''}`;
+                
+                const payLinkBtn = document.getElementById('recPayLink');
+                if (state.leaderLink) {
+                    payLinkBtn.href = state.leaderLink;
+                    payLinkBtn.classList.remove('hidden');
+                } else {
+                    payLinkBtn.classList.add('hidden');
+                }
+            } else {
+                accountSec.classList.add('hidden');
+            }
+
+            // 결과 박스 부드럽게 표기
+            const receiptBox = document.getElementById('receiptBox');
+            receiptBox.classList.remove('hidden');
+            receiptBox.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 단톡방 공유 텍스트 복사 (클립보드 API 대체 표준 기법)
+        function copyShareText() {
+            if (!calcResultCache) return;
+
+            let text = `[공지] ${calcResultCache.meetingName} (${calcResultCache.meetingDate}) 정산\n\n`;
+            text += `💰 총 지출: ${calcResultCache.grandTotal.toLocaleString()}원\n`;
+            text += ` (공통: ${calcResultCache.totalCommon.toLocaleString()}원 / 주유비: ${calcResultCache.totalGas.toLocaleString()}원)\n`;
+            text += `📊 지분 단가 (가중치 1.0 기준): ${calcResultCache.baseSharePrice.toLocaleString()}원\n\n`;
+            text += `👤 멤버별 정산 상세:\n`;
+
+            calcResultCache.results.forEach(res => {
+                const diff = res.balance;
+                let detail = ` - ${res.name} (배율 ${res.weight}배): `;
+                if (diff > 0) {
+                    detail += `${diff.toLocaleString()}원 돌려받기\n`;
+                } else if (diff < 0) {
+                    detail += `${Math.abs(diff).toLocaleString()}원 송금 필요\n`;
+                } else {
+                    detail += `정산 완료 (0원)\n`;
+                }
+                text += detail;
+            });
+
+            if (calcResultCache.leaderBank && calcResultCache.leaderAccount) {
+                text += `\n🏦 송금처: ${calcResultCache.leaderBank} ${calcResultCache.leaderAccount}`;
+                if (calcResultCache.leaderName) text += ` (${calcResultCache.leaderName})`;
+                text += `\n`;
+                if (calcResultCache.leaderLink) {
+                    text += `⚡ 간편송금 링크: ${calcResultCache.leaderLink}\n`;
+                }
+            }
+
+            text += `\n행복한 하루 되세요! 🎈`;
+
+            // 클립보드 복사 실행
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = text;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            
+            try {
+                document.execCommand('copy');
+                alert('정산 공유용 텍스트가 클립보드에 복사되었습니다!\n카카오톡 단톡방에 붙여넣기(Ctrl+V) 해보세요.');
+            } catch (err) {
+                alert('복사에 실패했습니다. 수동으로 영역을 선택해 복사해 주세요.');
+            } finally {
+                document.body.removeChild(tempTextArea);
+            }
+        }
+
+        // HTML5 Canvas 활용한 모바일 고품질 영수증 이미지 생성기
+        function generateReceiptImage() {
+            if (!calcResultCache) return;
+
+            const canvas = document.getElementById('receiptCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // 동적 캔버스 높이 산출 (멤버 수에 비례)
+            const itemHeight = 50;
+            const headerHeight = 220;
+            const footerHeight = calcResultCache.leaderBank ? 150 : 80;
+            const calculatedHeight = headerHeight + (calcResultCache.results.length * itemHeight) + footerHeight;
+
+            // 캔버스 사이즈 결정 (모바일 뷰포트 맞춤 800px 너비로 스케일링해 고해상도 처리)
+            const width = 600;
+            canvas.width = width;
+            canvas.height = calculatedHeight;
+
+            // 1. 배경 색상 채우기 (깨끗한 화이트)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, calculatedHeight);
+
+            // 2. 테두리 장식라인 그리기
+            ctx.strokeStyle = '#f3f4f6';
+            ctx.lineWidth = 10;
+            ctx.strokeRect(5, 5, width - 10, calculatedHeight - 10);
+
+            // 3. 타이틀 텍스트 그리기
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            // 영수증 헤더 딱지
+            ctx.fillStyle = '#fee500';
+            ctx.fillRect(width / 2 - 60, 30, 120, 24);
+            ctx.fillStyle = '#111111';
+            ctx.font = 'bold 12px "Noto Sans KR", Arial, sans-serif';
+            ctx.fillText('RECEIPT', width / 2, 35);
+
+            // 모임명
+            ctx.fillStyle = '#111111';
+            ctx.font = 'bold 24px "Noto Sans KR", Arial, sans-serif';
+            ctx.fillText(calcResultCache.meetingName, width / 2, 70);
+
+            // 날짜
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '500 13px "Noto Sans KR", Arial, sans-serif';
+            ctx.fillText(calcResultCache.meetingDate, width / 2, 105);
+
+            // 더블 데코 라인
+            ctx.strokeStyle = '#d1d5db';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(30, 135);
+            ctx.lineTo(width - 30, 135);
+            ctx.moveTo(30, 139);
+            ctx.lineTo(width - 30, 139);
+            ctx.stroke();
+
+            // 요약 수치 드로잉
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '14px "Noto Sans KR", Arial, sans-serif';
+            ctx.fillText('총 공통 지출액', 40, 155);
+            ctx.fillText('총 주유비 지출액', 40, 175);
+
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#111111';
+            ctx.fillText(calcResultCache.totalCommon.toLocaleString() + '원', width - 40, 155);
+            ctx.fillText(calcResultCache.totalGas.toLocaleString() + '원', width - 40, 175);
+
+            // 최종 총 지출액 강조
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#111111';
+            ctx.font = 'bold 17px "Noto Sans KR", Arial, sans-serif';
+            ctx.fillText('총 모임 지출액 (전체)', 40, 205);
+
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#ef4444'; // 빨간색 강조
+            ctx.font = 'bold 20px "Noto Sans KR", Arial, sans-serif';
+            ctx.fillText(calcResultCache.grandTotal.toLocaleString() + '원', width - 40, 205);
+
+            // 지분 단가 강조
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#ca8a04'; // 황금색
+            ctx.font = 'bold 15px "Noto Sans KR", Arial, sans-serif';
+            ctx.fillText('지분 단가 (가중치 1.0 기준)', 40, 235);
+
+            ctx.textAlign = 'right';
+            ctx.fillText(calcResultCache.baseSharePrice.toLocaleString() + '원', width - 40, 235);
+
+            // 구분 대시선
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(30, 265);
+            ctx.lineTo(width - 30, 265);
+            ctx.stroke();
+            ctx.setLineDash([]); // 대시라인 원복
+
+            // 4. 개별 상세 결과 내역 드로잉
+            let currentY = 285;
+            
+            calcResultCache.results.forEach(res => {
+                // 수령/송금 딱지 배경색 드로잉
+                ctx.fillStyle = res.balance > 0 ? '#f0fdf4' : (res.balance < 0 ? '#fef2f2' : '#f3f4f6');
+                ctx.fillRect(40, currentY - 5, 45, 20);
+
+                // 딱지 텍스트
+                ctx.textAlign = 'center';
+                ctx.font = 'bold 10px "Noto Sans KR", Arial, sans-serif';
+                ctx.fillStyle = res.balance > 0 ? '#16a34a' : (res.balance < 0 ? '#dc2626' : '#9ca3af');
+                const tagText = res.balance > 0 ? '수령' : (res.balance < 0 ? '송금' : '완료');
+                ctx.fillText(tagText, 62, currentY);
+
+                // 멤버 정보
+                ctx.textAlign = 'left';
+                ctx.fillStyle = '#1f2937';
+                ctx.font = 'bold 14px "Noto Sans KR", Arial, sans-serif';
+                ctx.fillText(`${res.name} (배율: ${res.weight}배)`, 95, currentY - 2);
+
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = '11px "Noto Sans KR", Arial, sans-serif';
+                ctx.fillText(`지출: ${res.myTotalSpend.toLocaleString()}원 / 부담: ${res.myDuty.toLocaleString()}원`, 95, currentY + 12);
+
+                // 최종 금액값 우측 정렬
+                ctx.textAlign = 'right';
+                ctx.font = 'bold 15px "Noto Sans KR", Arial, sans-serif';
+                ctx.fillStyle = res.balance > 0 ? '#16a34a' : (res.balance < 0 ? '#dc2626' : '#6b7280');
+                const resultValStr = res.balance > 0 ? `+${res.balance.toLocaleString()}원` : `${res.balance.toLocaleString()}원`;
+                ctx.fillText(resultValStr, width - 40, currentY + 4);
+
+                currentY += itemHeight;
+            });
+
+            // 피날레 구분선
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(30, currentY);
+            ctx.lineTo(width - 30, currentY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            currentY += 25;
+
+            // 5. 총무 은행 계좌 영역 그리기
+            if (calcResultCache.leaderBank && calcResultCache.leaderAccount) {
+                // 박스형 배경 그리기
+                ctx.fillStyle = '#f9fafb';
+                ctx.fillRect(40, currentY - 10, width - 80, 55);
+                ctx.strokeStyle = '#f3f4f6';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(40, currentY - 10, width - 80, 55);
+
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = 'bold 11px "Noto Sans KR", Arial, sans-serif';
+                ctx.fillText('송금처 안내', width / 2, currentY - 3);
+
+                ctx.fillStyle = '#1f2937';
+                ctx.font = 'bold 14px "Noto Sans KR", Arial, sans-serif';
+                const accountDetail = `${calcResultCache.leaderBank} : ${calcResultCache.leaderAccount} ${calcResultCache.leaderName ? `(${calcResultCache.leaderName})` : ''}`;
+                ctx.fillText(accountDetail, width / 2, currentY + 18);
+                
+                currentY += 75;
+            }
+
+            // 하단 안내문
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '11px "Noto Sans KR", Arial, sans-serif';
+            ctx.fillText('본 영수증은 모임 정산용 간이 명세서입니다. 대화방 공유용으로 간직하세요.', width / 2, currentY);
+
+            // 파일로 다운로드 실행 트리거
+            const dataUrl = canvas.toDataURL('image/png');
+            const downloadLink = document.createElement('a');
+            downloadLink.href = dataUrl;
+            downloadLink.download = `[정산_영수증]_${calcResultCache.meetingName}_${calcResultCache.meetingDate}.png`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+
+        // 로드 시 앱 초기 구동 진행
+        window.onload = function() {
+            initApp();
+        }
+    </script>
+</body>
+</html>
+
